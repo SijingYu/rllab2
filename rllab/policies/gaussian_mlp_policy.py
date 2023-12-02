@@ -53,9 +53,14 @@ class GaussianMLPPolicy(StochasticPolicy, LasagnePowered):
         """
         Serializable.quick_init(self, locals())
         assert isinstance(env_spec.action_space, Box)
-
+        # print('env_spec.observation_space:', env_spec.observation_space)
         obs_dim = env_spec.observation_space.flat_dim
+        print('ori dim:', obs_dim)
+        # obs_dim /= 16
+        obs_dim = 1024
+        # print('obs_dim:', obs_dim)
         action_dim = env_spec.action_space.flat_dim
+        # print('action_dim:', action_dim)
 
         # create network
         if mean_network is None:
@@ -74,6 +79,7 @@ class GaussianMLPPolicy(StochasticPolicy, LasagnePowered):
         if std_network is not None:
             l_log_std = std_network.output_layer
         else:
+            print('adaptive_std:', adaptive_std)
             if adaptive_std:
                 std_network = MLP(
                     input_shape=(obs_dim,),
