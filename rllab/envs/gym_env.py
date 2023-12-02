@@ -6,8 +6,9 @@ import traceback
 import logging
 
 try:
-    from gym.wrappers.monitoring import logger as monitor_logger
-
+    # from gym.wrappers.monitoring import logger as monitor_logger
+    # import gym.wrappers.logger as monitor_logger
+    import gym.logger as monitor_logger
     monitor_logger.setLevel(logging.WARNING)
 except Exception as e:
     traceback.print_exc()
@@ -19,7 +20,8 @@ from rllab.core.serializable import Serializable
 from rllab.spaces.box import Box
 from rllab.spaces.discrete import Discrete
 from rllab.spaces.product import Product
-from rllab.misc import logger
+# from rllab.misc import logger
+import rllab.misc.logger as logger
 
 
 def convert_gym_space(space):
@@ -56,7 +58,7 @@ class NoVideoSchedule(object):
 
 
 class GymEnv(Env, Serializable):
-    def __init__(self, env_name, record_video=True, video_schedule=None, log_dir=None, record_log=True,
+    def __init__(self, env_name, record_video=True, video_schedule=None, log_dir=None, record_log=False,
                  force_reset=False):
         if log_dir is None:
             if logger.get_snapshot_dir() is None:
@@ -69,7 +71,7 @@ class GymEnv(Env, Serializable):
         self.env = env
         self.env_id = env.spec.id
 
-        assert not (not record_log and record_video)
+        # assert not (not record_log and record_video)x
 
         if log_dir is None or record_log is False:
             self.monitoring = False
