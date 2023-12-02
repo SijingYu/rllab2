@@ -2,6 +2,27 @@ import numpy as np
 from rllab.misc import tensor_utils
 import time
 
+import torchvision
+
+import matplotlib.pyplot as plt
+# %matplotlib inline
+
+import clip as clip
+import torch
+from PIL import Image
+
+
+def freeze(layer):
+    
+    # Looping through each child layer of the input layer
+    for child in layer.children():
+        
+        # Looping through each parameter of each child layer
+        for param in child.parameters():
+            # Setting the parameter's 'requires_grad' attribute to False
+            # to freeze it's learning during training
+            param.requires_grad = False
+
 
 def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1,
             always_return_paths=False):
@@ -10,12 +31,51 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1,
     rewards = []
     agent_infos = []
     env_infos = []
+    render = lambda : plt.imshow(env.render(mode='rgb_array'))
     o = env.reset()
     agent.reset()
     path_length = 0
+
+    active_model, preprocess = clip.load('ViT-B/16')
+
+    freeze(active_model)
+
     if animated:
-        env.render()
+        # env.render()
+        render()
     while path_length < max_path_length:
+        
+        # o = torchvision.transforms.Resize((24, 24))(o)
+
+        # o = np.resize(o, (3,24,24))
+
+        # print('o.shape:', o.shape)
+
+        # print('type(o):', type(o))
+
+        reward_info = "The reward is -0.1 every frame and +1000/N for every track tile visited, where N is the total number of tiles visited in the track. For example, if you have finished in 732 frames, your reward is 1000 - 0.1*732 = 926.8 points."
+
+        image_input = preprocess(Image.fromarray(o)).unsqueeze(0).cuda()
+        text_inputs = torch.cat([clip.tokenize(reward_info)]).cuda()
+
+        # print('text_inputs:', text_inputs.shape)
+        # print('torch.tensor(o).unsqueeze(0).shape:', torch.tensor(o).unsqueeze(0).shape)
+
+        image_features = active_model.encode_image(image_input)
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+
+        text_features = active_model.encode_text(text_inputs)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+
+        # print('image_features.shape:', image_features.shape)
+        # print('text_features.shape:', text_features.shape)
+
+
+        # o = torch.cat([image_features, text_features], dim = 1).detach()
+        o = (image_features + text_features).detach().cpu()
+        # print('overall_f.shape:', overall_f.shape)
+        
+        # print('o?:', o.shape)
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
         observations.append(env.observation_space.flatten(o))
